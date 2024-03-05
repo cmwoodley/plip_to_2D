@@ -47,3 +47,7 @@ options:
 ```
 2. As an importable function
 See example jupyter notebook.
+
+## Limitations and Issues
+
+Label placement in 2D interaction diagram isn't perfect - the ability to output an SVG file editable in vector graphics software somewhat gets around this.
