@@ -463,7 +463,7 @@ def plip_2d_interactions(file, bsid, padding=40, canvas_height=500, canvas_width
     my_interactions = my_mol.interaction_sets[bsid]
 
     if save_pymol:
-        _save_pymol(my_mol, bsid, os.path.split(file)[0])
+        _save_pymol(my_mol, bsid, outdir)
         
     bsr = BindingSiteReport(my_interactions)
 
@@ -509,8 +509,17 @@ def plip_2d_interactions(file, bsid, padding=40, canvas_height=500, canvas_width
     with tempfile.TemporaryDirectory() as temp_dir:
         lig_path = os.path.join(temp_dir, "lig.pdb")
         lig = "".join([line for line in pdb if ((line[17:20] == bsid.split(":")[0])&(line[21] == bsid.split(":")[1])&(line[22:26].strip() == bsid.split(":")[2]))])
-        mol = Chem.MolFromPDBBlock(lig, removeHs=False)
-        rdDetermineBonds.DetermineBonds(mol)
+
+        ## Pybel seems to protonate differently when running from a jupyter notebook versus command line
+        ## No idea why this is, but this is a workaround
+
+        try:
+            mol = Chem.MolFromPDBBlock(lig, removeHs=False)
+            rdDetermineBonds.DetermineBonds(mol, charge=0)
+        except:
+            mol = pybel.readstring("pdb",lig)
+            mol.write("pdb",lig_path, overwrite=True)
+            mol = Chem.MolFromPDBFile(lig_path, removeHs=False)
 
     AllChem.EmbedMolecule(mol)
     set_to_neutral_pH(mol) #### Helper function to protonate/deprotonate groups. ####
