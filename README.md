@@ -47,3 +47,15 @@ options:
 ```
 2. As an importable function
 See example jupyter notebook.
+
+### Referencing
+
+If using this code in your work, please cite this repo, PLIP and RDKIT:
+
+Adasme,M. et al. PLIP 2021: expanding the scope of the protein-ligand interaction profiler to DNA and RNA. Nucl. Acids Res. (05 May 2021), gkab294. doi: 10.1093/nar/gkab294
+
+RDKit: Open-source cheminformatics; http://www.rdkit.org
+
+## Limitations and Issues
+
+Label placement in 2D interaction diagram isn't perfect - the ability to output an SVG file editable in vector graphics software somewhat gets around this.
