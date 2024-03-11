@@ -16,7 +16,7 @@ import tempfile
 from rdkit.Chem import rdDetermineBonds
 
 config.NOHYDRO = True
-
+ob = pybel.ob
 
 def _save_pymol(my_mol, my_id, outdir):
     '''
@@ -25,6 +25,7 @@ def _save_pymol(my_mol, my_id, outdir):
     '''
     complex = VisualizerData(my_mol, my_id)
     vis = PyMOLVisualizer(complex)
+
     lig_members = complex.lig_members
     chain = complex.chain
 
@@ -406,6 +407,42 @@ def set_to_neutral_pH(mol: Chem):
         protons_removed += 1
     return (protons_added, protons_removed)
 
+# Define periodic table dictionary
+periodic_table = {
+    1: 'H',  2: 'He', 3: 'Li', 4: 'Be', 5: 'B',  6: 'C',  7: 'N',  8: 'O',  9: 'F',  10: 'Ne',
+    11: 'Na', 12: 'Mg', 13: 'Al', 14: 'Si', 15: 'P', 16: 'S', 17: 'Cl', 18: 'Ar', 19: 'K', 20: 'Ca',
+    21: 'Sc', 22: 'Ti', 23: 'V', 24: 'Cr', 25: 'Mn', 26: 'Fe', 27: 'Co', 28: 'Ni', 29: 'Cu', 30: 'Zn',
+    31: 'Ga', 32: 'Ge', 33: 'As', 34: 'Se', 35: 'Br', 36: 'Kr', 37: 'Rb', 38: 'Sr', 39: 'Y', 40: 'Zr',
+    41: 'Nb', 42: 'Mo', 43: 'Tc', 44: 'Ru', 45: 'Rh', 46: 'Pd', 47: 'Ag', 48: 'Cd', 49: 'In', 50: 'Sn',
+    51: 'Sb', 52: 'Te', 53: 'I', 54: 'Xe', 55: 'Cs', 56: 'Ba', 57: 'La', 58: 'Ce', 59: 'Pr', 60: 'Nd',
+    61: 'Pm', 62: 'Sm', 63: 'Eu', 64: 'Gd', 65: 'Tb', 66: 'Dy', 67: 'Ho', 68: 'Er', 69: 'Tm', 70: 'Yb',
+    71: 'Lu', 72: 'Hf', 73: 'Ta', 74: 'W', 75: 'Re', 76: 'Os', 77: 'Ir', 78: 'Pt', 79: 'Au', 80: 'Hg',
+    81: 'Tl', 82: 'Pb', 83: 'Bi', 84: 'Po', 85: 'At', 86: 'Rn', 87: 'Fr', 88: 'Ra', 89: 'Ac', 90: 'Th',
+    91: 'Pa', 92: 'U',  93: 'Np', 94: 'Pu', 95: 'Am', 96: 'Cm', 97: 'Bk', 98: 'Cf', 99: 'Es', 100: 'Fm',
+    101: 'Md', 102: 'No', 103: 'Lr', 104: 'Rf', 105: 'Db', 106: 'Sg', 107: 'Bh', 108: 'Hs', 109: 'Mt',
+    110: 'Ds', 111: 'Rg', 112: 'Cn', 113: 'Nh', 114: 'Fl', 115: 'Mc', 116: 'Lv', 117: 'Ts', 118: 'Og',
+}
+
+def convert_and_write_pdb(input_pdb, output_pdb):
+    # Load PDB from string
+    pdb = [x for x in pybel.readfile("pdb", input_pdb)][0]
+
+    for res in ob.OBResidueIter(pdb.OBMol):
+        if not res.GetResidueProperty(0):
+            if not res.GetName().isalnum():
+                res.SetName("LIG")
+            if res.GetChain().isspace():
+                res.SetChain("Z")    
+        for i,atom in enumerate(ob.OBResidueAtomIter(res)):
+            if not res.GetAtomID(atom).isalnum():
+                atom_name = periodic_table[atom.GetAtomicNum()]+str(i+1)
+                res.SetAtomID(atom, atom_name)
+
+    pdb.addh()
+    pdb.write("pdb", output_pdb, overwrite=True)
+
+    return pdb
+
 keys = (
     "hydrophobic",
     "hbond",
@@ -435,26 +472,21 @@ hbkeys = [
     "h"
 ]
 
-file = "./example_pdb/7tll.pdb"
-
 def plip_2d_interactions(file, bsid, padding=40, canvas_height=500, canvas_width=800, save_files=True, save_pymol=True, out_name="PLIP_interactions.png"):
 
     if not save_files:
         out_name = None
         save_pymol = False
 
-    outdir = "{}\{}_output".format(os.path.split(file)[0], os.path.split(file)[1].split(".")[0])
+    outdir = "{}/{}_output".format(os.path.split(file)[0], os.path.split(file)[1].split(".")[0])
     if not os.path.isdir(outdir):
         os.mkdir(outdir)
-    outdir = "{}\{}".format(outdir,"_".join(bsid.split(":")))
+    outdir = "{}/{}".format(outdir,"_".join(bsid.split(":")))
     if not os.path.isdir(outdir):
         os.mkdir(outdir)
 
-    file_prot = outdir+"\{}_prot.pdb".format(os.path.split(file)[1].split(".")[0])
-    input_pdb = [x for x in pybel.readfile("pdb",file)][0]
-    input_pdb.addh()
-    input_pdb.write("pdb",file_prot,overwrite=True)
-
+    file_prot = outdir+"/{}_prot.pdb".format(os.path.split(file)[1].split(".")[0])
+    input_pdb = convert_and_write_pdb(file, file_prot)
 
     my_mol = PDBComplex()
     my_mol.load_pdb(file_prot)
@@ -484,22 +516,22 @@ def plip_2d_interactions(file, bsid, padding=40, canvas_height=500, canvas_width
         hbond_df = pd.DataFrame(np.stack(hbond_df), columns=hbkeys)
         hbond_df["h"] = [x.idx for x in hbond_df["h"]]
     else:
-        hb_df = pd.DataFrame()
+        hbond_df = pd.DataFrame()
     pi_stacking_df = pd.DataFrame(interactions["pistacking"][1:], columns=interactions["pistacking"][0])
     pi_cation_df = pd.DataFrame(interactions["pication"][1:], columns=interactions["pication"][0])
     saltbridge_df = pd.DataFrame(interactions["saltbridge"][1:], columns=interactions["saltbridge"][0])
 
     if save_files:
         if len(hydrophobic_df) > 0:
-            hydrophobic_df.to_csv(outdir+"\{}_HPI.csv".format(os.path.split(file)[1].split(".")[0]), index=False)
+            hydrophobic_df.to_csv(outdir+"/{}_HPI.csv".format(os.path.split(file)[1].split(".")[0]), index=False)
         if len(hbond_df) > 0:
-            hbond_df.to_csv(outdir+"\{}_HB.csv".format(os.path.split(file)[1].split(".")[0]), index=False)
+            hbond_df.to_csv(outdir+"/{}_HB.csv".format(os.path.split(file)[1].split(".")[0]), index=False)
         if len(pi_stacking_df) > 0:
-            pi_stacking_df.to_csv(outdir+"\{}_PS.csv".format(os.path.split(file)[1].split(".")[0]), index=False)
+            pi_stacking_df.to_csv(outdir+"/{}_PS.csv".format(os.path.split(file)[1].split(".")[0]), index=False)
         if len(pi_cation_df) > 0:
-            pi_cation_df.to_csv(outdir+"\{}_PC.csv".format(os.path.split(file)[1].split(".")[0]), index=False)
+            pi_cation_df.to_csv(outdir+"/{}_PC.csv".format(os.path.split(file)[1].split(".")[0]), index=False)
         if len(saltbridge_df) > 0:
-            saltbridge_df.to_csv(outdir+"\{}_SB.csv".format(os.path.split(file)[1].split(".")[0]), index=False)
+            saltbridge_df.to_csv(outdir+"/{}_SB.csv".format(os.path.split(file)[1].split(".")[0]), index=False)
 
     with open(file_prot,"r") as f:
         pdb = f.readlines()
@@ -508,6 +540,7 @@ def plip_2d_interactions(file, bsid, padding=40, canvas_height=500, canvas_width
 
     with tempfile.TemporaryDirectory() as temp_dir:
         lig_path = os.path.join(temp_dir, "lig.pdb")
+
         lig = "".join([line for line in pdb if ((line[17:20] == bsid.split(":")[0])&(line[21] == bsid.split(":")[1])&(line[22:26].strip() == bsid.split(":")[2]))])
 
         ## Pybel seems to protonate differently when running from a jupyter notebook versus command line
