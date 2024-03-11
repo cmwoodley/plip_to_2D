@@ -492,7 +492,6 @@ def plip_2d_interactions(file, bsid, padding=40, canvas_height=500, canvas_width
     my_mol.load_pdb(file_prot)
 
     my_mol.analyze()
-    print(my_mol)
     my_interactions = my_mol.interaction_sets[bsid]
 
     if save_pymol:
