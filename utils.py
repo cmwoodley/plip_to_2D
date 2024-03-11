@@ -135,7 +135,7 @@ def _get_res_info(used_res, coord_dict, interactions):
     for i,res in enumerate(used_res):
         res_ints = [x[0] for x in interactions if x[1] == res]
         initial_lab_coords = np.array([coord_dict[x] for x in res_ints]).mean(axis=0)
-        candidates = (np.mgrid[-5.0:5.1:0.2, -5.0:5.1:0.2].reshape(2,-1).T) + initial_lab_coords
+        candidates = (np.mgrid[-3.5:3.6:0.1, -3.5:3.6:0.1].reshape(2,-1).T) + initial_lab_coords
 
         overlaps = []
         for cand in candidates:
@@ -423,7 +423,7 @@ periodic_table = {
     110: 'Ds', 111: 'Rg', 112: 'Cn', 113: 'Nh', 114: 'Fl', 115: 'Mc', 116: 'Lv', 117: 'Ts', 118: 'Og',
 }
 
-def convert_and_write_pdb(input_pdb, output_pdb):
+def convert_and_write_pdb(input_pdb, output_pdb, bsid):
     # Load PDB from string
     pdb = [x for x in pybel.readfile("pdb", input_pdb)][0]
 
@@ -432,7 +432,7 @@ def convert_and_write_pdb(input_pdb, output_pdb):
             if not res.GetName().isalnum():
                 res.SetName("LIG")
             if res.GetChain().isspace():
-                res.SetChain("Z")    
+                res.SetChain(bsid.split(":")[1])    
         for i,atom in enumerate(ob.OBResidueAtomIter(res)):
             if not res.GetAtomID(atom).isalnum():
                 atom_name = periodic_table[atom.GetAtomicNum()]+str(i+1)
@@ -486,12 +486,13 @@ def plip_2d_interactions(file, bsid, padding=40, canvas_height=500, canvas_width
         os.mkdir(outdir)
 
     file_prot = outdir+"/{}_prot.pdb".format(os.path.split(file)[1].split(".")[0])
-    input_pdb = convert_and_write_pdb(file, file_prot)
+    input_pdb = convert_and_write_pdb(file, file_prot, bsid)
 
     my_mol = PDBComplex()
     my_mol.load_pdb(file_prot)
 
     my_mol.analyze()
+    print(my_mol)
     my_interactions = my_mol.interaction_sets[bsid]
 
     if save_pymol:
