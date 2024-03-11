@@ -1,0 +1,25 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: PLIP_to_2D
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Christopher
+    family-names: Woodley
+identifiers:
+  - type: url
+    value: 'https://github.com/cmwoodley/plip_to_2D'
+    description: Github URL
+repository-code: 'https://github.com/cmwoodley/plip_to_2D'
+abstract: >-
+  A package to run PLIP analysis on a ligand bound pdb and
+  generate a 2D representation of binding interactions.
+keywords:
+  - bioinformatics
+  - structural biology
+  - drug design
+license: GPL-3.0
